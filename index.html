@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GestNotes</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b2430;--mu:#667085;--bd:#d9dee5;--c:#1d4ed8}
+@media(prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1b222b;--tx:#e8ecf1;--mu:#98a2b3;--bd:#2d3744}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--c);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}header h1{margin:0;font-size:1.1rem}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px}button,.btn{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 12px;border-radius:8px;cursor:pointer;font:inherit}
+nav button.on,.p{background:var(--c);color:#fff;border-color:var(--c)}main{padding:0 16px 24px;max-width:1100px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
+label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mu);gap:3px}select,input{font:inherit;padding:7px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid var(--bd);padding:6px 8px;text-align:left;font-size:.9rem}th{background:var(--bg)}td input{width:70px}
+.login{max-width:340px;margin:60px auto}.login input{width:100%;margin-bottom:10px}
+.sheet{background:#fff;color:#000;border:1px solid #ccc;padding:18px;margin-bottom:14px;border-radius:6px}.sheet th{background:#eee;color:#000}.sheet td,.sheet th{border-color:#999}
+.hd{text-align:center;font-size:.8rem;line-height:1.4}.sheet h2{text-align:center;margin:10px 0;font-size:1.05rem;color:var(--c)}.sg{display:flex;justify-content:space-between;margin-top:30px;font-size:.85rem}
+@media print{body{background:#fff}header,nav,.bar,.noprint{display:none!important}.sheet{border:0;page-break-after:always}main{padding:0}}
+</style></head><body>
+<header><h1 id="ttl">GestNotes</h1><span id="who"></span></header><nav id="nv"></nav><main id="app"></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL='https://sdlxrxlrxblvdruiovws.supabase.co',SUPABASE_KEY='sb_publishable_O6WjpiFZG1JbGDvnhtJaCg_Qpx_3lvw';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let me,prof,cfg={school:'Mon établissement',color:'#1d4ed8'},S={v:'notes',y:null,c:null,t:'t1',s:null},D={years:[],classes:[],subs:[],A:[],st:[],G:{},users:[],rm:{}};
+const seqs=p=>p[0]==='e'?[+p[1]]:p[0]==='t'?[2*p[1]-1,2*p[1]]:[1,2,3,4,5,6];
+const avg=a=>{a=a.filter(x=>x!=null);return a.length?a.reduce((x,y)=>x+y)/a.length:null};
+const f=v=>v===null?'–':(Math.round(v*100)/100).toFixed(2);
+const gv=(st,sub,q)=>D.G[`${st}_${sub}_${q}`]??null;
+const mSub=(st,sub,p)=>avg(seqs(p).map(q=>gv(st,sub,q)));
+const subsC=()=>D.subs.filter(s=>D.A.some(a=>a.class_id===S.c&&a.subject_id===s.id));
+const gAvg=(st,p)=>{let T=0,C=0;subsC().forEach(s=>{const m=mSub(st,s.id,p);if(m!==null){T+=m*s.coef;C+=+s.coef}});return C?T/C:null};
+function ranks(p){const a=D.st.map(s=>gAvg(s.id,p)),o=a.filter(x=>x!==null).sort((x,y)=>y-x);return{a,r:a.map(x=>x===null?null:o.indexOf(x)+1)}}
+const appr=m=>m===null?'':m<8?'Insuffisant':m<10?'Médiocre':m<12?'Passable':m<14?'Assez bien':m<16?'Bien':'Très bien';
+const ment=m=>m!==null&&m>=12?'Tableau d\'honneur':'';
+const tl=p=>p[0]==='e'?`Évaluation ${p[1]}`:p[0]==='t'?`${p[1]}${p[1]==1?'er':'e'} trimestre`:'Année';
+const admin=()=>prof?.role==='admin',cls=()=>D.classes.find(c=>c.id===S.c);
+const yl=()=>D.years.find(y=>y.id===S.y)?.label||'';
+const hd=()=>`<div class="hd"><b>RÉPUBLIQUE DU CAMEROUN</b> – Paix – Travail – Patrie<br>MINISTÈRE DES ENSEIGNEMENTS SECONDAIRES<br><b>${esc(cfg.school)}</b> – Année scolaire ${esc(yl())}</div>`;
+
+function login(msg=''){$('#nv').innerHTML='';$('#who').innerHTML='';$('#app').innerHTML=`<div class="card login"><h3>Connexion</h3><p style="color:#b42318">${esc(msg)}</p><input id="em" type="email" placeholder="E-mail"><input id="pw" type="password" placeholder="Mot de passe"><button class="btn p" id="li">Se connecter</button> <button class="btn" id="su">Créer un compte</button></div>`}
+async function boot(){const{data:{user}}=await sb.auth.getUser();me=user;if(!me)return login();
+ prof=(await sb.from('profiles').select('*').eq('id',me.id).maybeSingle()).data;if(!prof)return login('Profil introuvable.');
+ const st=(await sb.from('settings').select('data').eq('id',1).maybeSingle()).data;if(st)cfg={...cfg,...st.data};
+ D.years=(await sb.from('years').select('*').order('label',{ascending:false})).data||[];
+ S.y=S.y||(D.years.find(y=>y.active)||D.years[0])?.id;if(prof.role!=='admin'&&prof.role!=='viewer')S.v='notes';await loadYear()}
+async function loadYear(){D.classes=S.y?(await sb.from('classes').select('*').eq('year_id',S.y).order('name')).data||[]:[];
+ D.subs=(await sb.from('subjects').select('*').order('name')).data||[];D.A=(await sb.from('assignments').select('*')).data||[];if(admin())D.users=(await sb.from('profiles').select('*').order('email')).data||[];
+ S.c=D.classes.find(c=>c.id===S.c)?S.c:D.classes[0]?.id;await loadClass()}
+async function loadRm(ids){D.rm={};((await sb.from('remarks').select('*').in('student_id',ids)).data||[]).forEach(r=>D.rm[r.student_id+'_'+r.term]=r)}
+const rmHtml=id=>{if(S.t[0]!=='t')return'';const r=D.rm[id+'_'+S.t[1]]||{};return`<p><b>Absences :</b> ${r.absences??'–'} h &nbsp; <b>Conduite :</b> ${esc(r.conduite||'–')}<br><b>Observation du conseil de classe :</b> ${esc(r.observation||'–')}</p>`}
+async function loadClass(){D.st=[];D.G={};if(S.c){D.st=(await sb.from('students').select('*').eq('class_id',S.c).order('name')).data||[];const ids=D.st.map(s=>s.id);
+ if(ids.length)await loadRm(ids);if(ids.length)((await sb.from('grades').select('*').in('student_id',ids)).data||[]).forEach(r=>D.G[`${r.student_id}_${r.subject_id}_${r.eval}`]=r.value)}render()}
+
+function ctrl(o={}){return`<div class="bar"><label>Année<select id="sy">${D.years.map(y=>`<option value="${y.id}" ${y.id===S.y?'selected':''}>${esc(y.label)}</option>`).join('')}</select></label>
+<label>Classe<select id="sc">${D.classes.map(c=>`<option value="${c.id}" ${c.id===S.c?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>${o.p?`<label>Période<select id="st">${['e1','e2','e3','e4','e5','e6','t1','t2','t3','a'].map(t=>`<option value="${t}" ${S.t===t?'selected':''}>${tl(t)}</option>`).join('')}</select></label>`:''}${o.x||''}${o.pr?'<button class="btn p" onclick="print()">Imprimer / PDF</button>':''}</div>`}
+const TABS={notes:'Saisie des notes',bul:'Bulletins',rel:'Relevés',pv:'Procès-verbaux',hon:'Tableau d\'honneur',cc:'Conseil de classe',adm:'Administration'};
+const V={
+notes(){const L=admin()?D.subs:D.subs.filter(s=>D.A.some(a=>a.class_id===S.c&&a.subject_id===s.id)),sid=(L.find(s=>s.id===S.s)||L[0])?.id;S.s=sid;
+ if(!sid)return ctrl()+'<div class="card">Aucune matière ne vous est attribuée dans cette classe.</div>';
+ return ctrl({x:`<label>Matière<select id="ss">${L.map(s=>`<option value="${s.id}" ${s.id===sid?'selected':''}>${esc(s.name)} (coef ${s.coef})</option>`).join('')}</select></label>`})+
+ `<div class="card sc"><table><tr><th>Élève</th>${[1,2,3,4,5,6].map(q=>`<th>Éval. ${q}</th>`).join('')}</tr>${D.st.map(s=>`<tr><td>${esc(s.name)}</td>${[1,2,3,4,5,6].map(q=>`<td><input type="number" min="0" max="20" step="0.25" data-s="${s.id}" data-q="${q}" value="${gv(s.id,sid,q)??''}"></td>`).join('')}</tr>`).join('')}</table></div>`},
+bul(){const R=ranks(S.t),p=seqs(S.t),n=D.st.length;return ctrl({p:1,pr:1})+D.st.map((s,i)=>`<div class="sheet">${hd()}<h2>BULLETIN DE NOTES – ${tl(S.t).toUpperCase()}</h2><p><b>Élève :</b> ${esc(s.name)} &nbsp; <b>Classe :</b> ${esc(cls().name)} &nbsp; <b>Effectif :</b> ${n}</p>
+<table><tr><th>Matière</th>${p.map(q=>`<th>Éval. ${q}</th>`).join('')}<th>Moy.</th><th>Coef</th><th>Total</th><th>Appréciation</th></tr>${subsC().map(u=>{const m=mSub(s.id,u.id,S.t);return`<tr><td>${esc(u.name)}</td>${p.map(q=>`<td>${gv(s.id,u.id,q)??'–'}</td>`).join('')}<td>${f(m)}</td><td>${u.coef}</td><td>${m===null?'–':f(m*u.coef)}</td><td>${appr(m)}</td></tr>`}).join('')}</table>
+<p><b>Moyenne générale :</b> ${f(R.a[i])}/20 &nbsp; <b>Rang :</b> ${R.r[i]??'–'}/${n} &nbsp; <b>Appréciation :</b> ${appr(R.a[i])}<br><b>Distinction :</b> ${esc(ment(R.a[i]))||'Aucune'}</p>${rmHtml(s.id)}<div class="sg"><span>Le Parent</span><span>Le Professeur principal</span><span>Le Chef d'établissement</span></div></div>`).join('')},
+rel(){return ctrl({pr:1})+D.st.map(s=>`<div class="sheet">${hd()}<h2>RELEVÉ DE NOTES</h2><p><b>Élève :</b> ${esc(s.name)} &nbsp; <b>Classe :</b> ${esc(cls().name)}</p><table><tr><th>Matière</th>${[1,2,3,4,5,6].map(q=>`<th>E${q}</th>`).join('')}<th>Moy. annuelle</th><th>Coef</th></tr>${subsC().map(u=>`<tr><td>${esc(u.name)}</td>${[1,2,3,4,5,6].map(q=>`<td>${gv(s.id,u.id,q)??'–'}</td>`).join('')}<td>${f(mSub(s.id,u.id,'a'))}</td><td>${u.coef}</td></tr>`).join('')}</table><p><b>Moyenne annuelle :</b> ${f(gAvg(s.id,'a'))}/20</p><div class="sg"><span></span><span>Fait le ${new Date().toLocaleDateString('fr-FR')}</span><span>Le Chef d'établissement</span></div></div>`).join('')},
+pv(){const R=ranks(S.t),v=R.a.filter(x=>x!==null),o=D.st.map((_,i)=>i).sort((x,y)=>(R.a[y]??-1)-(R.a[x]??-1)),ok=v.filter(x=>x>=10).length;
+ return ctrl({p:1,pr:1})+`<div class="sheet">${hd()}<h2>PROCÈS-VERBAL – ${tl(S.t).toUpperCase()} – ${esc(cls()?.name)}</h2><table><tr><th>Rang</th><th>Élève</th><th>Moyenne</th><th>Appréciation</th><th>${S.t!=='a'?'Distinction':'Décision'}</th></tr>${o.map(i=>`<tr><td>${R.r[i]??'–'}</td><td>${esc(D.st[i].name)}</td><td>${f(R.a[i])}</td><td>${appr(R.a[i])}</td><td>${R.a[i]===null?'':S.t!=='a'?esc(ment(R.a[i])):R.a[i]>=10?'Admis(e)':'À revoir'}</td></tr>`).join('')}</table>
+<p><b>Effectif :</b> ${D.st.length} &nbsp; <b>Moyenne de classe :</b> ${f(avg(v))} &nbsp; <b>Max :</b> ${f(v.length?Math.max(...v):null)} &nbsp; <b>Min :</b> ${f(v.length?Math.min(...v):null)} &nbsp; <b>Réussite (≥10) :</b> ${v.length?Math.round(ok/v.length*100):0}%</p><div class="sg"><span>Le Professeur principal</span><span>Le Conseil de classe</span><span>Le Chef d'établissement</span></div></div>`},
+hon(){const R=ranks(S.t),o=D.st.map((_,i)=>i).filter(i=>R.a[i]!==null&&R.a[i]>=12).sort((x,y)=>R.a[y]-R.a[x]);
+ return ctrl({p:1,pr:1})+`<div class="sheet">${hd()}<h2>TABLEAU D'HONNEUR – ${tl(S.t).toUpperCase()} – ${esc(cls()?.name)}</h2>${o.length?`<table><tr><th>Rang</th><th>Élève</th><th>Moyenne</th><th>Distinction</th></tr>${o.map(i=>`<tr><td>${R.r[i]}</td><td>${esc(D.st[i].name)}</td><td>${f(R.a[i])}</td><td>${esc(ment(R.a[i]))}</td></tr>`).join('')}</table>`:'<p>Aucun élève n\'atteint le seuil (12/20).</p>'}</div>`},
+cc(){if(S.t[0]!=='t')return ctrl({p:1})+'<div class="card">Choisissez un trimestre dans « Période ».</div>';const term=S.t[1];
+ return ctrl({p:1})+`<div class="card sc"><h3>Conseil de classe – ${tl(S.t)}</h3><table><tr><th>Élève</th><th>Absences (h)</th><th>Conduite</th><th>Observation</th></tr>${D.st.map(s=>{const r=D.rm[s.id+'_'+term]||{};return`<tr><td>${esc(s.name)}</td><td><input type="number" min="0" data-s="${s.id}" data-r="absences" value="${r.absences??''}"></td><td><select data-s="${s.id}" data-r="conduite">${['','Très bien','Bien','Assez bien','Passable','Médiocre','Blâme'].map(o=>`<option ${r.conduite===o?'selected':''}>${o}</option>`).join('')}</select></td><td><input style="width:100%;min-width:220px" data-s="${s.id}" data-r="observation" value="${esc(r.observation||'')}"></td></tr>`}).join('')}</table></div>`},
+adm(){const U=D.users,tn=id=>{const u=U.find(x=>x.id===id);return esc(u?.name||u?.email||'?')},row=(t,b)=>`<tr><td>${t}</td><td>${b}</td></tr>`,B=(a,id,l)=>`<button class="btn" data-a="${a}" data-id="${id}">${l}</button> `;
+ return ctrl()+`<div class="card"><h3>Année et établissement</h3><div class="bar"><button class="btn" data-a="yr">Nouvelle année</button><button class="btn" data-a="cfg">Personnaliser</button><button class="btn" data-a="exp">Exporter toutes les données</button></div></div>
+<div class="card sc"><h3>Classes de l'année</h3><table>${D.classes.map(c=>row(esc(c.name),B('rn_cl',c.id,'Renommer')+B('del_cl',c.id,'Supprimer'))).join('')}</table><button class="btn p" data-a="cl">Ajouter une classe</button></div>
+<div class="card sc"><h3>Élèves de ${esc(cls()?.name||'…')}</h3><table>${D.st.map(s=>row(esc(s.name),B('rn_st',s.id,'Renommer')+B('del_st',s.id,'Supprimer'))).join('')}</table><button class="btn p" data-a="stu">Ajouter des élèves</button></div>
+<div class="card sc"><h3>Matières</h3><table>${D.subs.map(s=>row(esc(s.name)+' (coef '+s.coef+')',B('ed_sub',s.id,'Modifier')+B('del_sub',s.id,'Supprimer'))).join('')}</table><button class="btn p" data-a="sub">Ajouter une matière</button></div>
+<div class="card sc"><h3>Attributions dans ${esc(cls()?.name||'…')}</h3><table>${D.A.filter(a=>a.class_id===S.c).map(a=>row(tn(a.teacher_id)+' – '+esc(D.subs.find(s=>s.id===a.subject_id)?.name),B('del_asg',a.id,'Retirer'))).join('')}</table>
+<div class="bar"><label>Enseignant<select id="ag_t">${U.map(u=>`<option value="${u.id}">${esc(u.name||u.email)}</option>`).join('')}</select></label><label>Matière<select id="ag_s">${D.subs.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label><button class="btn p" data-a="add_asg">Attribuer</button></div></div>
+<div class="card sc"><h3>Utilisateurs</h3><table>${U.map(u=>row(esc(u.email),`<select data-role="${u.id}">${['admin','teacher','viewer'].map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}</select>`)).join('')}</table></div>`}};
+function render(){document.documentElement.style.setProperty('--c',cfg.color);$('#ttl').textContent=cfg.school+' – GestNotes';
+ $('#who').innerHTML=`${esc(prof.name||prof.email)} (${prof.role}) <button id="lo">Quitter</button>`;
+ const t=prof.role==='teacher'?['notes']:prof.role==='viewer'?['bul','rel','pv','hon']:Object.keys(TABS);if(!t.includes(S.v))S.v=t[0];
+ $('#nv').innerHTML=t.map(k=>`<button class="${S.v===k?'on':''}" data-v="${k}">${TABS[k]}</button>`).join('');
+ const a=$('#app');if(document.activeElement?.tagName==='INPUT'&&S.v==='notes'&&a.contains(document.activeElement))return;
+ a.innerHTML=(!D.classes.length&&S.v!=='adm')?(ctrl()+'<div class="card">Aucune classe disponible pour cette année. Contactez l\'administrateur.</div>'):V[S.v]()}
+const ins=async(t,o)=>{const{error}=await sb.from(t).insert(o);if(error)alert(error.message);await boot()};
+const upd=async(t,o,id)=>{const{error}=await sb.from(t).update(o).eq('id',id);if(error)alert(error.message);await boot()};
+const del=async(t,id,m)=>{if(!confirm(m))return;const{error}=await sb.from(t).delete().eq('id',id);if(error)alert(error.message);await boot()};
+const ADM={
+rn_cl(id){const n=prompt('Nouveau nom',D.classes.find(c=>c.id==id).name);n&&upd('classes',{name:n},id)},
+del_cl(id){del('classes',id,'Supprimer cette classe, ses élèves et leurs notes ?')},
+rn_st(id){const n=prompt('Nouveau nom',D.st.find(s=>s.id==id).name);n&&upd('students',{name:n},id)},
+del_st(id){del('students',id,'Supprimer cet élève et ses notes ?')},
+ed_sub(id){const s=D.subs.find(x=>x.id==id),l=prompt('Matière;coefficient',s.name+';'+s.coef);if(l){const p=l.split(';');upd('subjects',{name:p[0].trim(),coef:+p[1]||1},id)}},
+del_sub(id){del('subjects',id,'Supprimer cette matière et toutes ses notes ?')},
+add_asg(){ins('assignments',{teacher_id:$('#ag_t').value,class_id:S.c,subject_id:+$('#ag_s').value})},
+del_asg(id){del('assignments',id,'Retirer cette attribution ?')},
+yr(){const l=prompt('Année scolaire (ex. 2026/2027)');l&&ins('years',{label:l})},
+cl(){const n=prompt('Nom de la classe');n&&S.y&&ins('classes',{name:n,year_id:S.y})},
+stu(){const l=prompt('Noms des élèves, séparés par des points-virgules');l&&S.c&&ins('students',l.split(';').map(x=>x.trim()).filter(Boolean).map(name=>({name,class_id:S.c})))},
+sub(){const l=prompt('Matière;coefficient (ex. Mathématiques;4)');if(l){const p=l.split(';');ins('subjects',{name:p[0].trim(),coef:+p[1]||1})}},
+async asg(){const e=prompt('E-mail de l\'enseignant'),m=prompt('Nom exact de la matière');if(!e||!m)return;
+ const u=(await sb.from('profiles').select('id').eq('email',e.trim()).maybeSingle()).data,s=D.subs.find(x=>x.name===m.trim());
+ if(!u||!s||!S.c)return alert('Enseignant, matière ou classe introuvable.');ins('assignments',{teacher_id:u.id,class_id:S.c,subject_id:s.id})},
+async role(){const e=prompt('E-mail du compte'),r=prompt('Rôle : admin, teacher ou viewer');if(!e||!r)return;const{error}=await sb.from('profiles').update({role:r.trim()}).eq('email',e.trim());alert(error?error.message:'Rôle modifié.')},
+async cfg(){const n=prompt('Nom de l\'établissement',cfg.school),c=prompt('Couleur (ex. #1d4ed8)',cfg.color);if(!n)return;cfg={school:n,color:c||cfg.color};await sb.from('settings').upsert({id:1,data:cfg});render()},
+async exp(){const o={};for(const t of['years','classes','students','subjects','assignments','grades','profiles'])o[t]=(await sb.from(t).select('*')).data;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:'application/json'}));a.download='gestnotes-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';a.click()}};
+document.addEventListener('click',async e=>{const t=e.target;
+ if(t.dataset.v){S.v=t.dataset.v;render()}else if(t.dataset.a)ADM[t.dataset.a](t.dataset.id);
+ else if(t.id==='lo'){await sb.auth.signOut();login()}
+ else if(t.id==='li'||t.id==='su'){const r=await sb.auth[t.id==='li'?'signInWithPassword':'signUp']({email:$('#em').value,password:$('#pw').value});if(r.error)login(r.error.message);else if(!r.data.session)login('Compte créé. Confirmez votre e-mail si demandé, puis connectez-vous.');else boot()}});
+document.addEventListener('change',async e=>{const t=e.target;
+ if(t.id==='sy'){S.y=+t.value;await loadYear()}else if(t.id==='sc'){S.c=+t.value;await loadClass()}else if(t.id==='st'){S.t=t.value;render()}else if(t.id==='ss'){S.s=+t.value;render()}
+ else if(t.dataset.role){const{error}=await sb.from('profiles').update({role:t.value}).eq('id',t.dataset.role);alert(error?error.message:'Rôle modifié.')}
+ else if(t.dataset.r){const term=+S.t[1],o={student_id:+t.dataset.s,term};o[t.dataset.r]=t.dataset.r==='absences'?(t.value===''?null:+t.value):t.value;const{error}=await sb.from('remarks').upsert(o);if(error)alert(error.message);else{const k=o.student_id+'_'+term;D.rm[k]={...(D.rm[k]||{}),...o}}}
+ else if(t.dataset.q){const v=t.value===''?null:+t.value,k=`${t.dataset.s}_${S.s}_${t.dataset.q}`,old=D.G[k]??null;D.G[k]=v;
+  const r=v===null?await sb.from('grades').delete().match({student_id:+t.dataset.s,subject_id:S.s,eval:+t.dataset.q}):await sb.from('grades').upsert({student_id:+t.dataset.s,subject_id:S.s,eval:+t.dataset.q,value:v,teacher_id:me.id});
+  if(r.error){D.G[k]=old;t.value=old??'';alert('Note refusée : '+r.error.message)}}});
+boot();
+</script></body></html>
