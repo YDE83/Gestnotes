@@ -1,0 +1,11 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Test GestNotes</title>
+<style>body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#fff;color:#111}h1{background:#1d4ed8;color:#fff;margin:-16px -16px 16px;padding:14px;font-size:1.1rem}p{padding:8px;border-radius:6px;background:#eef}.ko{background:#fdd}.ok{background:#dfd}</style></head><body>
+<h1>Test GestNotes</h1><div id="r"><p class="ok">1. La page HTML s'affiche : OK</p></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const r=document.getElementById('r'),add=(t,ok)=>r.insertAdjacentHTML('beforeend','<p class="'+(ok?'ok':'ko')+'">'+t+'</p>');
+add('2. JavaScript : OK',true);
+add('3. Bibliothèque Supabase : '+(window.supabase?'chargée, OK':'NON chargée (réseau ou bloqueur de scripts)'),!!window.supabase);
+const U='https://sdlxrxlrxblvdruiovws.supabase.co',K='sb_publishable_O6WjpiFZG1JbGDvnhtJaCg_Qpx_3lvw';
+fetch(U+'/rest/v1/years?select=id&limit=1',{headers:{apikey:K}}).then(async x=>{const t=await x.text();add('4. Connexion à la base : code '+x.status+' '+(x.status===200?'(OK)':'(problème) '+t.slice(0,200)),x.status===200)}).catch(e=>add('4. Connexion à la base : ÉCHEC – '+e.message,false));
+</script></body></html>
