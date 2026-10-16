@@ -15,8 +15,11 @@ label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mu);gap:3px
 @media print{body{background:#fff}header,nav,.bar,.noprint{display:none!important}.sheet{border:0;page-break-after:always}main{padding:0}}
 </style></head><body>
 <header><h1 id="ttl">GestNotes</h1><span id="who"></span></header><nav id="nv"></nav><main id="app"></main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>')</script>
 <script>
+addEventListener('error',e=>document.getElementById('app').insertAdjacentHTML('afterbegin','<div class="card" style="color:#b42318">Erreur : '+e.message+'</div>'));
+if(!window.supabase){document.getElementById('app').innerHTML='<div class="card">Impossible de charger la bibliothèque Supabase. Vérifiez la connexion Internet puis rechargez.</div>';throw new Error('supabase manquant')}
 const SUPABASE_URL='https://sdlxrxlrxblvdruiovws.supabase.co',SUPABASE_KEY='sb_publishable_O6WjpiFZG1JbGDvnhtJaCg_Qpx_3lvw';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
